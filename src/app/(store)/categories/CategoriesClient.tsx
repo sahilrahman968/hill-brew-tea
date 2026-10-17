@@ -1,0 +1,103 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, Grid3x3 } from "lucide-react";
+import { fetchCategories, type CategoryData } from "@/lib/store-api";
+import { CategoryCardSkeleton } from "@/components/store/skeletons";
+
+export default function CategoriesClient() {
+  const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCategories().then((res) => {
+      if (res.success && res.data) {
+        setCategories(res.data.filter((cat) => (cat.productCount ?? 0) > 0));
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[92rem] px-3 py-8 sm:px-4 lg:px-6">
+        <div className="mb-2 h-3 w-32 animate-pulse-slow bg-card-hover" />
+        <div className="mb-8 h-10 w-56 animate-pulse-slow bg-card-hover" />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <CategoryCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-black py-8 sm:py-10">
+      <div className="mx-auto w-full max-w-[92rem] px-3 sm:px-4 lg:px-6">
+        <div className="mb-8">
+          <p className="eyebrow mb-3 text-primary/90">
+            01 / Categories
+          </p>
+          <h1 className="section-title text-3xl text-foreground sm:text-5xl lg:text-6xl">
+            All Categories
+          </h1>
+          <p className="meta-text tabular mt-3 text-muted">
+            Browse our collection of {categories.length} categories
+          </p>
+        </div>
+
+        {categories.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {categories.map((cat) => (
+              <div key={cat._id}>
+                <Link
+                  href={`/categories/${cat.slug}`}
+                  className="group relative block overflow-hidden bg-black focus:outline-none"
+                >
+                  <div className="relative aspect-[4/5] overflow-hidden bg-black/55">
+                    {cat.image?.url ? (
+                      <Image
+                        src={cat.image.url}
+                        alt={cat.name}
+                        fill
+                        sizes="(max-width: 1024px) 50vw, 25vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-card to-black">
+                        <span className="text-5xl font-bold text-primary/60">
+                          {cat.name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/42 to-transparent" />
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
+                    <p className="eyebrow-xs tabular text-primary/85">
+                      {cat.productCount} {cat.productCount === 1 ? "Piece" : "Pieces"}
+                    </p>
+                    <h2 className="section-title mt-1.5 text-base text-foreground transition-colors group-hover:text-primary sm:text-2xl">
+                      {cat.name}
+                    </h2>
+                  </div>
+                  <div className="absolute bottom-4 right-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <ArrowRight size={18} className="text-foreground" />
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-20 text-center">
+            <Grid3x3 size={40} className="mx-auto mb-3 text-muted/35" />
+            <h2 className="text-lg text-foreground">No categories yet</h2>
+            <p className="meta-text mt-2 text-muted">Check back soon for new categories</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

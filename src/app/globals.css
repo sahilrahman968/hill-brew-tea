@@ -1,0 +1,782 @@
+@import "../../node_modules/tailwindcss/index.css";
+
+/*
+ * Storefront color values are injected at runtime via inline styles on <body>
+ * from src/config/theme.ts — edit that file to change store colors globally.
+ *
+ * Admin tokens are NOT on :root / body. They live under `.admin-theme` and
+ * `html.admin-panel` only (see below + getAdminThemeCSSVariables).
+ *
+ * The fallback values below ensure Tailwind can still generate classes
+ * during build (they are overridden by the inline styles at runtime).
+ */
+:root {
+  --background: #0f1712;
+  --foreground: #f3efe4;
+  --primary: #c9a227;
+  --primary-dark: #8f7318;
+  --primary-light: #1e2b20;
+  --accent: #5f8a63;
+  --accent-light: #1a2820;
+  --muted: #a8a294;
+  --border: #2a352c;
+  --card: #152019;
+  --card-hover: #1c2a21;
+  --danger: #d45a5a;
+  --warning: #d4a24a;
+  --success: #6aad7a;
+  --estate-mist: #e8e4d6;
+  --estate-soil: #1a1410;
+}
+
+/*
+ * Admin panel tokens live ONLY under `.admin-theme` / `html.admin-panel` so the
+ * storefront never inherits these values from `:root`. Fallbacks match
+ * theme.ts `adminColors`; runtime overrides come from getAdminThemeCSSVariables().
+ */
+.admin-theme,
+html.admin-panel {
+  --admin-canvas: #f8fafc;
+  --admin-surface: #ffffff;
+  --admin-subtle: #f1f5f9;
+  --admin-hover: #f1f5f9;
+  --admin-line: #e2e8f0;
+  --admin-line-strong: #cbd5e1;
+  --admin-heading: #0f172a;
+  --admin-body: #334155;
+  --admin-muted: #64748b;
+  --admin-faint: #94a3b8;
+  --admin-primary: #4f46e5;
+  --admin-primary-hover: #4338ca;
+  --admin-primary-soft: #eef2ff;
+  --admin-focus: #a5b4fc;
+  --admin-success: #10b981;
+  --admin-success-soft: #ecfdf5;
+  --admin-success-line: #a7f3d0;
+  --admin-warning: #f59e0b;
+  --admin-warning-soft: #fffbeb;
+  --admin-warning-line: #fde68a;
+  --admin-danger: #ef4444;
+  --admin-danger-soft: #fef2f2;
+  --admin-danger-line: #fecaca;
+  --admin-info: #3b82f6;
+  --admin-info-soft: #eff6ff;
+  --admin-info-line: #bfdbfe;
+}
+
+@theme inline {
+  --color-admin-canvas: var(--admin-canvas);
+  --color-admin-surface: var(--admin-surface);
+  --color-admin-subtle: var(--admin-subtle);
+  --color-admin-hover: var(--admin-hover);
+  --color-admin-line: var(--admin-line);
+  --color-admin-line-strong: var(--admin-line-strong);
+  --color-admin-heading: var(--admin-heading);
+  --color-admin-body: var(--admin-body);
+  --color-admin-muted: var(--admin-muted);
+  --color-admin-faint: var(--admin-faint);
+  --color-admin-primary: var(--admin-primary);
+  --color-admin-primary-hover: var(--admin-primary-hover);
+  --color-admin-primary-soft: var(--admin-primary-soft);
+  --color-admin-focus: var(--admin-focus);
+  --color-admin-success: var(--admin-success);
+  --color-admin-success-soft: var(--admin-success-soft);
+  --color-admin-success-line: var(--admin-success-line);
+  --color-admin-warning: var(--admin-warning);
+  --color-admin-warning-soft: var(--admin-warning-soft);
+  --color-admin-warning-line: var(--admin-warning-line);
+  --color-admin-danger: var(--admin-danger);
+  --color-admin-danger-soft: var(--admin-danger-soft);
+  --color-admin-danger-line: var(--admin-danger-line);
+  --color-admin-info: var(--admin-info);
+  --color-admin-info-soft: var(--admin-info-soft);
+  --color-admin-info-line: var(--admin-info-line);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display-face);
+}
+
+/*
+ * ─── Typography scale ───────────────────────────────────────────────────────
+ * One tracking value per role instead of ad-hoc `tracking-[0.29em]` guesses.
+ * Uppercase micro-labels need generous tracking to stay legible; body copy and
+ * large headings need almost none. Reach for the `.eyebrow` / `.label-text` /
+ * `.meta-text` / `.body-copy` classes below instead of arbitrary values.
+ */
+:root {
+  /* Uppercase label tracking, by size. Smaller text needs more of it. */
+  --track-eyebrow: 0.16em;
+  --track-label: 0.1em;
+  --track-button: 0.08em;
+
+  /* Heading tracking, tightening as type scales up (optical compensation).
+     Derived from theme.headings.letterSpacing so that stays the single knob. */
+  --track-heading-base: var(--heading-letter-spacing, 0.015em);
+  --track-heading-sm: var(--track-heading-base);
+  --track-heading-md: calc(var(--track-heading-base) - 0.01em);
+  --track-heading-lg: calc(var(--track-heading-base) - 0.025em);
+
+  /* Line heights */
+  --leading-display: 0.95;
+  --leading-heading: 1.12;
+  --leading-snug: 1.4;
+  --leading-body: 1.65;
+  --leading-relaxed: 1.75;
+}
+
+/*
+ * Element defaults live in `base` and the text-role classes in `components`, so
+ * a one-off Tailwind utility (`leading-tight`, `tracking-normal`, …) still wins.
+ * Unlayered rules would outrank every utility and silently ignore them.
+ */
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+    line-height: var(--leading-body);
+    letter-spacing: 0;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 90% 0%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 50%),
+      linear-gradient(180deg, #0c1410 0%, var(--background) 40%, #0e1611 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display), Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    text-transform: var(--heading-text-transform, none);
+    line-height: var(--leading-heading);
+    text-wrap: balance;
+  }
+
+  /* Optical tracking: the bigger the heading, the tighter it should be set. */
+  h1 { letter-spacing: var(--track-heading-lg); line-height: var(--leading-display); }
+  h2 { letter-spacing: var(--track-heading-md); }
+  h3 { letter-spacing: var(--track-heading-sm); }
+  h4, h5, h6 { letter-spacing: var(--track-heading-sm); line-height: var(--leading-snug); }
+
+  /* Avoid orphans/ragged last lines in prose without hard-wrapping. */
+  p {
+    text-wrap: pretty;
+  }
+}
+
+/*
+ * ─── Text role classes ──────────────────────────────────────────────────────
+ * These set size / weight / tracking / leading only — never colour, so they
+ * compose freely with `text-muted`, `text-primary`, etc.
+ */
+@layer components {
+  /* Wide-tracked uppercase micro-label ("01 / Categories", "Free Shipping"). */
+  .eyebrow {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    /* 11px: 9px caps at wide tracking were below the legibility floor. */
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--track-eyebrow);
+    line-height: var(--leading-snug);
+  }
+
+  @media (min-width: 640px) {
+    .eyebrow { font-size: 0.75rem; }
+  }
+
+  /* Same role, for tight spots (badges, chips, ticker) where 12px will not fit. */
+  .eyebrow-xs {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    line-height: var(--leading-snug);
+  }
+
+  /* Form labels, table headers, tab labels, section kickers inside cards. */
+  .label-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--track-label);
+    line-height: var(--leading-snug);
+  }
+
+  /* Button and CTA text. Tracking stays modest so words stay a single unit. */
+  .btn-text {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--track-button);
+    line-height: 1;
+  }
+
+  /* Supporting copy: timestamps, helper text, sublabels. */
+  .meta-text {
+    font-size: 0.8125rem;
+    line-height: var(--leading-snug);
+    letter-spacing: 0;
+  }
+
+  /* Body copy with a capped measure — stops paragraphs running too wide. */
+  .body-copy {
+    font-size: 0.9375rem;
+    line-height: var(--leading-relaxed);
+    letter-spacing: 0;
+    max-width: 68ch;
+  }
+
+  /* Numerals that must align in columns (prices, totals, quantities, counts). */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Prices: tabular figures, slightly tightened, never uppercase-tracked. */
+  .price {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  .hero-kicker {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 600;
+    /* Was 0.42em — so wide the words stopped reading as words. */
+    letter-spacing: 0.2em;
+    line-height: var(--leading-snug);
+  }
+
+  .hero-title {
+    font-family: var(--font-display), Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 0.98;
+    text-wrap: balance;
+  }
+
+  /* Section heading paired with an .eyebrow above it. */
+  .section-title {
+    font-family: var(--font-display), Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: -0.015em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+
+  /* Soft mist panel used on light estate story sections */
+  .estate-panel {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--estate-mist) 96%, #fff) 0%, #ebe6d6 100%);
+    color: #1a221c;
+  }
+
+  .estate-panel .section-title,
+  .estate-panel h2,
+  .estate-panel h3 {
+    color: #152019;
+  }
+
+  .estate-panel .body-copy,
+  .estate-panel p {
+    color: color-mix(in srgb, #1a221c 78%, transparent);
+  }
+
+  .btn-estate {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.9rem 1.6rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--primary);
+    color: #1a1410;
+    transition: background-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+    cursor: pointer;
+  }
+
+  .btn-estate:hover {
+    background: color-mix(in srgb, var(--primary) 88%, #fff);
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--primary) 28%, transparent);
+  }
+
+  .btn-estate-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.9rem 1.6rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid color-mix(in srgb, var(--foreground) 45%, transparent);
+    color: var(--foreground);
+    background: transparent;
+    transition: border-color 200ms ease, background-color 200ms ease;
+    cursor: pointer;
+  }
+
+  .btn-estate-ghost:hover {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+
+  .parallax-layer {
+    will-change: transform;
+  }
+
+  .min-h-estate-hero {
+    min-height: 100svh;
+  }
+
+  .min-h-estate-story {
+    min-height: 85svh;
+  }
+}
+
+.hero-title-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--primary) 88%, #ffffff 12%);
+  text-shadow: 0 0 24px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+/* Primary CTAs: brass/gold fill needs dark ink for contrast on the storefront */
+body:not(.admin-theme) .bg-primary {
+  color: #1a1410;
+}
+
+@keyframes hero-slow-zoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+.animate-hero-slow-zoom {
+  animation: hero-slow-zoom 18s ease-in-out infinite alternate;
+}
+
+/* Header logo: a white highlight sweeps the wordmark from the M to the +.
+   The logo file doubles as the mask so the light only lands on the letterforms. */
+.logo-flare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mask-image: url("/logo.svg");
+  mask-repeat: no-repeat;
+  mask-position: left center;
+  mask-size: contain;
+  -webkit-mask-image: url("/logo.svg");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: left center;
+  -webkit-mask-size: contain;
+}
+
+.logo-flare::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -45%;
+  width: 45%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 30%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.1) 70%,
+    transparent 100%
+  );
+  animation: logo-flare-sweep 5.5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes logo-flare-sweep {
+  0%, 8% { transform: translateX(0); opacity: 0; }
+  14% { opacity: 1; }
+  34% { opacity: 1; }
+  42%, 100% { transform: translateX(322%); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-flare::before { animation: none; opacity: 0; }
+}
+
+@keyframes ticker-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-wrap {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-track {
+  display: inline-flex;
+  min-width: max-content;
+  animation: ticker-marquee 38s linear infinite;
+  will-change: transform;
+}
+
+/* Form field styling.
+   Unlayered, so it outranks every Tailwind utility — hence the `.admin-theme`
+   exclusions: the admin panel is light and styles its own fields (see the
+   admin block in @layer base) rather than inheriting these dark defaults. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not(.admin-theme *),
+select:not(.admin-theme *),
+textarea:not(.admin-theme *) {
+  color: var(--foreground);
+  background-color: color-mix(in srgb, var(--card) 80%, black 20%);
+  border-color: var(--border);
+}
+
+input:not(.admin-theme *)::placeholder,
+textarea:not(.admin-theme *)::placeholder {
+  color: color-mix(in srgb, var(--muted) 85%, white 15%) !important;
+  opacity: 1;
+}
+
+/*
+ * ─── Admin panel surface ────────────────────────────────────────────────────
+ * The panel is a light island inside the dark store shell. Everything is scoped
+ * to `.admin-theme` (set on the admin shell root) and kept in `base` so a
+ * one-off Tailwind utility still wins.
+ */
+@layer base {
+  /*
+   * Keep admin on Inter regardless of storefront estate fonts (Outfit /
+   * Cormorant). Remap the shared Tailwind font tokens so utilities and
+   * components inside the panel stay on the admin face.
+   */
+  .admin-theme,
+  html.admin-panel {
+    --font-body: var(--font-admin-body);
+    --font-sans: var(--font-admin-body);
+    --font-display: var(--font-admin-body);
+    --font-display-face: var(--font-admin-body);
+    font-family: var(--font-admin-body), system-ui, -apple-system, sans-serif;
+  }
+
+  .admin-theme {
+    color: var(--admin-body);
+    background-color: var(--admin-canvas);
+  }
+
+  /* Store headings use display serif — too loud for dense admin UI. */
+  .admin-theme :is(h1, h2, h3, h4, h5, h6) {
+    font-family: var(--font-admin-body), system-ui, sans-serif;
+    text-transform: none;
+    letter-spacing: -0.01em;
+    line-height: var(--leading-snug);
+    color: var(--admin-heading);
+  }
+
+  .admin-theme
+    :is(
+      input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]),
+      select,
+      textarea
+    ) {
+    color: var(--admin-heading);
+    background-color: var(--admin-surface);
+    border-color: var(--admin-line-strong);
+  }
+
+  .admin-theme :is(input, textarea)::placeholder {
+    color: var(--admin-faint);
+    opacity: 1;
+  }
+
+  .admin-theme :is(input[type="checkbox"], input[type="radio"], progress) {
+    accent-color: var(--admin-primary);
+  }
+
+  .admin-theme ::selection {
+    background: color-mix(in srgb, var(--admin-primary) 16%, transparent);
+    color: var(--admin-heading);
+  }
+
+  /* Admin panel scrolls inside #admin-main; keep document chrome neutral. */
+  html.admin-panel,
+  html.admin-panel body {
+    overflow: hidden;
+    overscroll-behavior: none;
+    background: var(--admin-canvas);
+    background-image: none;
+  }
+
+  .admin-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--admin-muted) 55%, transparent)
+      transparent;
+  }
+
+  .admin-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .admin-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .admin-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--admin-muted) 55%, transparent);
+    border-radius: 4px;
+  }
+
+  .admin-scroll::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--admin-primary) 35%, var(--admin-muted));
+  }
+}
+
+/* Auth forms sit directly on the dark page background. */
+.auth-form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]),
+.auth-form select,
+.auth-form textarea {
+  color: var(--foreground);
+  background-color: color-mix(in srgb, var(--card) 88%, black 12%);
+  border-color: var(--border) !important;
+}
+
+.auth-form input::placeholder,
+.auth-form textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 78%, transparent) !important;
+  opacity: 1;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.animate-fade-in { animation: fadeIn 0.3s ease-out; }
+.animate-slide-up { animation: slideUp 0.4s ease-out; }
+.animate-slide-down { animation: slideDown 0.3s ease-out; }
+.animate-slide-in-right { animation: slideInRight 0.3s ease-out; }
+.animate-pulse-slow { animation: pulse-slow 2s ease-in-out infinite; }
+.animate-bounce-gentle { animation: bounce-gentle 0.3s ease-out; }
+
+@keyframes banner-zoom {
+  0% { transform: scale(1.04); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: scale(1.08); opacity: 1; }
+}
+.animate-banner-zoom { animation: banner-zoom 12s ease-out forwards; }
+
+/* Scrollbar styling */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted) 65%, transparent);
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--primary) 40%, var(--muted));
+}
+
+/* Hide scrollbar */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Page scrollbar is replaced by the tea-leaf overlay (ScrollbarOverlay.tsx) */
+html { scrollbar-width: none; -ms-overflow-style: none; }
+html::-webkit-scrollbar,
+body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+.tea-rail {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 56px;
+  height: 100vh;
+  z-index: 2147483647;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 280ms ease;
+  display: none;
+}
+@media (min-width: 768px) and (pointer: fine) {
+  .tea-rail { display: block; }
+}
+
+.tea-mist-layer {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.tea-mist {
+  position: absolute;
+  /* Soft estate mist — warm green-cream, no blur filter for scroll perf */
+  background: radial-gradient(
+    circle at 36% 32%,
+    color-mix(in srgb, var(--foreground) 38%, transparent),
+    color-mix(in srgb, var(--accent) 18%, transparent) 36%,
+    color-mix(in srgb, var(--primary) 8%, transparent) 58%,
+    transparent 86%
+  );
+  will-change: transform, opacity;
+  animation-name: tea-mist-drift;
+  animation-timing-function: cubic-bezier(0.12, 0.62, 0.28, 1);
+  animation-fill-mode: forwards;
+}
+
+@keyframes tea-mist-drift {
+  0% { transform: translate(0, 0) scale(0.3) rotate(0deg); opacity: 0; }
+  18% { opacity: var(--o, 0.35); }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(var(--s)) rotate(var(--r));
+    opacity: 0;
+  }
+}
+
+.tea-leaf-glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tea-leaf-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes tea-leaf-breathe {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50% { opacity: 0.18; transform: scale(1.08); }
+}
+
+/* Avatar button glow on hover */
+.avatar-btn {
+  transition: box-shadow 0.3s ease;
+}
+
+.avatar-btn:hover {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+/* Nav link underline animation */
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--primary);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.nav-link.nav-active {
+  color: var(--primary);
+}
+
+.nav-link.nav-active::after {
+  width: 100%;
+}
+
+/* Icon fill animation on hover */
+.icon-hover-fill svg {
+  fill: transparent;
+  transition: fill 0.3s ease;
+}
+
+.icon-hover-fill:hover svg {
+  fill: currentColor;
+}
+
+.icon-hover-fill.icon-active svg {
+  fill: currentColor;
+}
+
+/* Line clamp */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 42%, transparent);
+  color: var(--foreground);
+}

@@ -1,0 +1,220 @@
+import { NextRequest } from "next/server";
+import { requirePermission } from "@/lib/auth/require-auth";
+import { successResponse, errorResponse } from "@/lib/api-response";
+import { connectDB } from "@/lib/db/mongoose";
+import { validateCreateProduct } from "@/lib/validators";
+import Product from "@/models/product.model";
+import Category from "@/models/category.model";
+import { ensureProductPriceBaseline } from "@/lib/product-price-history";
+
+// ─── GET /api/admin/products — List all products (including inactive) ───────
+
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await requirePermission(request, "products.list");
+    if (auth.error) return auth.error;
+
+    await connectDB();
+
+    const { searchParams } = request.nextUrl;
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
+    const skip = (page - 1) * limit;
+    const sort = searchParams.get("sort") ?? "createdAt";
+    const order = searchParams.get("order") === "asc" ? 1 : -1;
+
+    const filter: Record<string, unknown> = {};
+
+    // Optional filters
+    const categoryParam = searchParams.get("category");
+    if (categoryParam) filter.category = categoryParam;
+
+    const activeParam = searchParams.get("isActive");
+    if (activeParam === "true") filter.isActive = true;
+    if (activeParam === "false") filter.isActive = false;
+
+    const featuredParam = searchParams.get("isFeatured");
+    if (featuredParam === "true") filter.isFeatured = true;
+    if (featuredParam === "false") filter.isFeatured = false;
+
+    const search = searchParams.get("search");
+    if (search) {
+      filter.$text = { $search: search };
+    }
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .populate("category", "name slug")
+        .populate("subcategory", "name slug")
+        .sort({ [sort]: order })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Product.countDocuments(filter),
+    ]);
+
+    return successResponse({
+      items: products,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page * limit < total,
+      hasPrevPage: page > 1,
+    });
+  } catch (err) {
+    console.error("[Products] List error:", err);
+    return errorResponse("Failed to fetch products", 500);
+  }
+}
+
+// ─── POST /api/admin/products — Create a product ────────────────────────────
+
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await requirePermission(request, "products.create");
+    if (auth.error) return auth.error;
+
+    await connectDB();
+
+    const body = await request.json();
+    const validation = validateCreateProduct(body);
+    if (!validation.valid) {
+      return errorResponse("Validation failed", 400, validation.errors.join("; "));
+    }
+
+    let categoryId: string | null = null;
+    if (body.category) {
+      const category = await Category.findById(body.category).lean();
+      if (!category) {
+        return errorResponse("Category not found", 404);
+      }
+      categoryId = String(category._id);
+    }
+
+    let subcategoryId: string | null = null;
+    if (body.subcategory) {
+      if (!categoryId) {
+        return errorResponse("Subcategory requires a category", 400);
+      }
+      const subcategory = await Category.findById(body.subcategory).lean();
+      if (!subcategory) {
+        return errorResponse("Subcategory not found", 404);
+      }
+      const parentId = subcategory.parent ? String(subcategory.parent) : null;
+      if (parentId !== categoryId) {
+        return errorResponse("Subcategory must belong to the selected category", 400);
+      }
+      subcategoryId = String(subcategory._id);
+    }
+
+    // Check for duplicate slug
+    const existingSlug = await Product.findOne({ slug: body.slug }).lean();
+    if (existingSlug) {
+      return errorResponse("A product with this slug already exists", 409);
+    }
+
+    // Check for duplicate SKUs across all products
+    const newSkus = body.variants.map((v: { sku: string }) => v.sku.toUpperCase());
+    const existingSku = await Product.findOne({
+      "variants.sku": { $in: newSkus },
+    }).lean();
+    if (existingSku) {
+      return errorResponse("One or more SKUs already exist in another product", 409);
+    }
+
+    const relatedProducts: string[] = Array.isArray(body.relatedProducts)
+      ? body.relatedProducts
+      : [];
+    if (relatedProducts.length > 0) {
+      const found = await Product.countDocuments({ _id: { $in: relatedProducts } });
+      if (found !== relatedProducts.length) {
+        return errorResponse("One or more related products were not found", 404);
+      }
+    }
+
+    const relatedProductsHeading =
+      typeof body.relatedProductsHeading === "string" && body.relatedProductsHeading.trim()
+        ? body.relatedProductsHeading.trim()
+        : "Related products";
+
+    const product = await Product.create({
+      title: body.title.trim(),
+      slug: body.slug.toLowerCase().trim(),
+      description: body.description.trim(),
+      category: categoryId,
+      subcategory: subcategoryId,
+      brand: typeof body.brand === "string" ? body.brand.trim() || undefined : undefined,
+      images: body.images ?? [],
+      variants: body.variants.map((v: Record<string, unknown>) => {
+        const dims =
+          v.dimensions &&
+          typeof v.dimensions === "object" &&
+          (v.dimensions as Record<string, unknown>).length != null &&
+          (v.dimensions as Record<string, unknown>).width != null &&
+          (v.dimensions as Record<string, unknown>).height != null
+            ? {
+                length: Number((v.dimensions as Record<string, unknown>).length),
+                width: Number((v.dimensions as Record<string, unknown>).width),
+                height: Number((v.dimensions as Record<string, unknown>).height),
+              }
+            : undefined;
+        return {
+          size: typeof v.size === "string" ? v.size.trim() : undefined,
+          color: typeof v.color === "string" ? v.color.trim() : undefined,
+          sku: (v.sku as string).toUpperCase().trim(),
+          price: v.price,
+          costPrice: typeof v.costPrice === "number" ? v.costPrice : undefined,
+          gst: typeof v.gst === "number" ? v.gst : 18,
+          compareAtPrice: v.compareAtPrice,
+          stock: v.stock ?? 0,
+          weight: typeof v.weight === "number" ? v.weight : undefined,
+          dimensions: dims,
+          isActive: v.isActive ?? true,
+        };
+      }),
+      discountPercent:
+        typeof body.discountPercent === "number" ? body.discountPercent : undefined,
+      reorderLevel: typeof body.reorderLevel === "number" ? body.reorderLevel : 0,
+      isReturnable: body.isReturnable ?? true,
+      returnWindowDays:
+        typeof body.returnWindowDays === "number" ? body.returnWindowDays : 7,
+      codAvailable: body.codAvailable ?? true,
+      shippingCategory: body.shippingCategory ?? "standard",
+      isActive: body.isActive ?? true,
+      isFeatured: body.isFeatured ?? false,
+      tags: body.tags ?? [],
+      relatedProducts,
+      relatedProductsHeading,
+    });
+
+    const populated = await Product.findById(product._id)
+      .populate("category", "name slug")
+      .populate("subcategory", "name slug")
+      .populate("relatedProducts", "title slug images")
+      .lean();
+
+    if (populated) {
+      await ensureProductPriceBaseline(
+        populated._id,
+        populated.variants,
+        populated.createdAt
+      );
+    }
+
+    return successResponse(populated, "Product created successfully", 201);
+  } catch (err) {
+    console.error("[Products] Create error:", err);
+    if ((err as { code?: number }).code === 11000) {
+      const msg = String(err);
+      if (msg.includes("slug")) {
+        return errorResponse("A product with this slug already exists", 409);
+      }
+      if (msg.includes("sku")) {
+        return errorResponse("One or more SKUs already exist", 409);
+      }
+      return errorResponse("Duplicate key error", 409);
+    }
+    return errorResponse("Failed to create product", 500);
+  }
+}

@@ -1,0 +1,489 @@
+import { Types } from "mongoose";
+
+// ─── User Roles ─────────────────────────────────────────────────────────────
+// Built-in system roles. Additional admin roles can be created by super admins.
+export const SYSTEM_ROLES = ["super_admin", "staff", "customer"] as const;
+export type SystemRole = (typeof SYSTEM_ROLES)[number];
+/** Any role slug — system or custom (e.g. "inventory_manager"). */
+export type UserRole = string;
+/** @deprecated Use SYSTEM_ROLES — kept for gradual migration */
+export const USER_ROLES = SYSTEM_ROLES;
+
+// ─── User Document Interface ────────────────────────────────────────────────
+export interface IUser {
+  _id: Types.ObjectId;
+  name: string;
+  email: string;
+  password: string;
+  phone?: string | null;
+  isPhoneVerified: boolean;
+  role: UserRole;
+  isActive: boolean;
+  isEmailVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ─── JWT Payload ────────────────────────────────────────────────────────────
+export interface JWTPayload {
+  userId: string;
+  email: string;
+  role: UserRole;
+}
+
+// ─── API Response Envelope ──────────────────────────────────────────────────
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message: string;
+  data?: T;
+  error?: string;
+}
+
+// ─── Auth Request Bodies ────────────────────────────────────────────────────
+export interface RegisterBody {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface LoginBody {
+  email: string;
+  password: string;
+}
+
+export interface SendOtpBody {
+  phone: string;
+}
+
+export interface VerifyOtpBody {
+  phone: string;
+  otp: string;
+  name?: string;
+}
+
+// ─── Category ───────────────────────────────────────────────────────────────
+
+export interface CategoryImage {
+  url: string;
+  publicId: string;
+}
+
+export interface ICategory {
+  _id: Types.ObjectId;
+  name: string;
+  slug: string;
+  description?: string;
+  image?: CategoryImage;
+  parent: Types.ObjectId | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateCategoryBody {
+  name: string;
+  slug: string;
+  description?: string;
+  image?: CategoryImage;
+  parent?: string;
+  isActive?: boolean;
+}
+
+export type UpdateCategoryBody = Partial<CreateCategoryBody>;
+
+// ─── Product Colors & Sizes ──────────────────────────────────────────────
+
+export const PRODUCT_COLORS = [
+  "Black",
+  "White",
+  "Red",
+  "Blue",
+  "Green",
+  "Yellow",
+  "Orange",
+  "Purple",
+  "Pink",
+  "Brown",
+  "Grey",
+  "Navy",
+  "Beige",
+  "Maroon",
+  "Teal",
+  "Coral",
+  "Olive",
+  "Lavender",
+  "Cream",
+  "Gold",
+  "Silver",
+  "Multi",
+] as const;
+
+export type ProductColor = (typeof PRODUCT_COLORS)[number];
+
+export const PRODUCT_SIZES = [
+  "XS",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "XXL",
+  "3XL",
+  "28",
+  "30",
+  "32",
+  "34",
+  "36",
+  "38",
+  "40",
+  "42",
+  "44",
+  "Free Size",
+  "100g",
+  "250g",
+  "500g",
+  "1kg",
+] as const;
+
+export type ProductSize = (typeof PRODUCT_SIZES)[number];
+
+export const PRODUCT_SHIPPING_CATEGORIES = [
+  "standard",
+  "express",
+  "fragile",
+  "heavy",
+] as const;
+
+export type ProductShippingCategory = (typeof PRODUCT_SHIPPING_CATEGORIES)[number];
+
+export const PRODUCT_SHIPPING_CATEGORY_LABELS: Record<ProductShippingCategory, string> = {
+  standard: "Standard",
+  express: "Express",
+  fragile: "Fragile",
+  heavy: "Heavy",
+};
+
+// ─── Product Image ──────────────────────────────────────────────────────────
+
+export interface ProductImage {
+  url: string;
+  publicId: string;
+  alt?: string;
+  /** When set, storefront shows this image for the matching colorway. */
+  color?: string;
+}
+
+export interface ProductDimensions {
+  length: number;
+  width: number;
+  height: number;
+}
+
+// ─── Product Variant ────────────────────────────────────────────────────────
+
+export interface ProductVariant {
+  _id?: Types.ObjectId;
+  size?: string;
+  color?: string;
+  sku: string;
+  /** Selling price exclusive of GST. */
+  price: number;
+  /** Cost / landed price (internal). */
+  costPrice?: number;
+  /** GST percentage (0–100). Price is exclusive of GST. */
+  gst: number;
+  /** MRP / compare-at price. */
+  compareAtPrice?: number;
+  stock: number;
+  /** Variant weight in grams. */
+  weight?: number;
+  /** Package dimensions in centimetres. */
+  dimensions?: ProductDimensions;
+  isActive?: boolean;
+}
+
+// ─── Product ────────────────────────────────────────────────────────────────
+
+export interface IProduct {
+  _id: Types.ObjectId;
+  title: string;
+  slug: string;
+  description: string;
+  category?: Types.ObjectId | null;
+  subcategory?: Types.ObjectId | null;
+  brand?: string;
+  images: ProductImage[];
+  variants: ProductVariant[];
+  discountPercent?: number;
+  reorderLevel?: number;
+  isReturnable: boolean;
+  returnWindowDays?: number;
+  codAvailable: boolean;
+  shippingCategory: ProductShippingCategory;
+  isActive: boolean;
+  isFeatured: boolean;
+  tags: string[];
+  relatedProducts: Types.ObjectId[];
+  relatedProductsHeading: string;
+  priceRange?: { min: number; max: number } | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateProductBody {
+  title: string;
+  slug: string;
+  description: string;
+  category?: string | null;
+  subcategory?: string | null;
+  brand?: string;
+  images?: ProductImage[];
+  variants: ProductVariant[];
+  discountPercent?: number;
+  reorderLevel?: number;
+  isReturnable?: boolean;
+  returnWindowDays?: number;
+  codAvailable?: boolean;
+  shippingCategory?: ProductShippingCategory;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  tags?: string[];
+  relatedProducts?: string[];
+  relatedProductsHeading?: string;
+}
+
+export type UpdateProductBody = Partial<CreateProductBody>;
+
+// ─── Inventory ──────────────────────────────────────────────────────────────
+
+export interface StockUpdateItem {
+  productId: string;
+  variantId: string;
+  quantity: number; // positive to add, negative to deduct
+}
+
+// ─── Pagination ─────────────────────────────────────────────────────────────
+
+export interface PaginationQuery {
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: "asc" | "desc";
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+// ─── Cart ────────────────────────────────────────────────────────────────────
+
+export interface CartItemBody {
+  productId: string;
+  variantId: string;
+  quantity: number;
+}
+
+export interface UpdateCartItemBody {
+  quantity: number;
+}
+
+// ─── Wishlist ────────────────────────────────────────────────────────────────
+
+export interface WishlistItemBody {
+  productId: string;
+  variantId?: string;
+}
+
+// ─── Coupon ──────────────────────────────────────────────────────────────────
+
+export type CouponType = "percentage" | "flat";
+export type CouponStatus = "draft" | "active" | "paused" | "disabled";
+export type CouponLifecycleStatus =
+  | CouponStatus
+  | "scheduled"
+  | "expired"
+  | "exhausted";
+
+export interface ICoupon {
+  _id: Types.ObjectId;
+  code: string;
+  name: string;
+  description?: string;
+  customerDescription?: string;
+  type: CouponType;
+  value: number;
+  minOrderValue: number;
+  maxDiscount: number | null;
+  startsAt: Date;
+  expiresAt: Date;
+  timezone: string;
+  status: CouponStatus;
+  /** @deprecated Prefer status / lifecycleStatus */
+  isActive: boolean;
+  usageLimit: number;
+  usedCount: number;
+  perUserLimit: number;
+  applicableProducts?: Types.ObjectId[];
+  applicableCategories?: Types.ObjectId[];
+  excludedProducts?: Types.ObjectId[];
+  firstOrderOnly: boolean;
+  restoreOnCancel: boolean;
+  deletedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateCouponBody {
+  code: string;
+  name?: string;
+  description?: string;
+  customerDescription?: string;
+  type: CouponType;
+  value: number;
+  minOrderValue?: number;
+  maxDiscount?: number | null;
+  startsAt?: string;
+  expiresAt: string;
+  timezone?: string;
+  status?: CouponStatus;
+  /** @deprecated Prefer status */
+  isActive?: boolean;
+  usageLimit: number;
+  perUserLimit?: number;
+  applicableProducts?: string[];
+  applicableCategories?: string[];
+  excludedProducts?: string[];
+  firstOrderOnly?: boolean;
+  restoreOnCancel?: boolean;
+}
+
+export type UpdateCouponBody = Partial<CreateCouponBody>;
+
+export interface ApplyCouponBody {
+  code: string;
+}
+
+// ─── Pricing & Checkout ──────────────────────────────────────────────────────
+
+export interface GSTBreakdown {
+  /** Subtotal before tax */
+  subtotal: number;
+  /** GST rate applied (e.g. 0.18 for 18%) */
+  gstRate: number;
+  /** GST percentage label (e.g. "18%") */
+  gstLabel: string;
+  /** CGST amount (Central GST — intra-state) */
+  cgst: number;
+  /** SGST amount (State GST — intra-state) */
+  sgst: number;
+  /** IGST amount (Integrated GST — inter-state, = cgst + sgst) */
+  igst: number;
+  /** Whether the transaction is inter-state */
+  isInterState: boolean;
+  /** Total tax amount */
+  totalTax: number;
+}
+
+export interface ShippingBreakdown {
+  method: string;
+  cost: number;
+  estimatedDays: number;
+  isFreeShipping: boolean;
+}
+
+export interface CartSummary {
+  /** Raw total of (price × qty) for all items */
+  subtotal: number;
+  /** Discount from coupon, if any */
+  discount: number;
+  /** Subtotal after discount */
+  subtotalAfterDiscount: number;
+  /** GST breakdown */
+  gst: GSTBreakdown;
+  /** Shipping breakdown */
+  shipping: ShippingBreakdown;
+  /** Grand total = subtotalAfterDiscount + gst.totalTax + shipping.cost */
+  grandTotal: number;
+  /** Number of items in cart */
+  itemCount: number;
+}
+
+export interface CartValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  summary: CartSummary | null;
+}
+
+// ─── Order ───────────────────────────────────────────────────────────────────
+
+export const ORDER_STATUSES = [
+  "pending",
+  "paid",
+  "processing",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "refunded",
+] as const;
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+// ─── Addresses ───────────────────────────────────────────────────────────────
+
+export const SUPPORTED_COUNTRIES = ["IN", "US", "GB", "AE"] as const;
+export type SupportedCountry = (typeof SUPPORTED_COUNTRIES)[number];
+
+export interface AddressInput {
+  label?: string;
+  name: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state?: string;
+  postalCode?: string;
+  country: SupportedCountry;
+}
+
+export interface SavedAddress extends AddressInput {
+  _id: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CheckoutBody {
+  /** Idempotency key to prevent duplicate orders from same checkout */
+  idempotencyKey: string;
+  shippingAddress: AddressInput & {
+    /** @deprecated use postalCode — kept for backward compatibility */
+    pincode?: string;
+  };
+  /** Optional shipping context */
+  isInterState?: boolean;
+  notes?: string;
+  saveAddress?: boolean;
+  savedAddressId?: string;
+}
+
+export interface VerifyPaymentBody {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+export interface UpdateOrderStatusBody {
+  status: OrderStatus;
+  note?: string;
+  cancelReason?: string;
+  /** Required when status is "shipped" */
+  trackingNumber?: string;
+  /** Required when status is "shipped" */
+  trackingUrl?: string;
+}

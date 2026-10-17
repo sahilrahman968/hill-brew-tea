@@ -1,0 +1,146 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
+import {
+  fetchCurrentUser,
+  logout as apiLogout,
+  sendOtp as apiSendOtp,
+  verifyOtp as apiVerifyOtp,
+  type UserData,
+} from "@/lib/store-api";
+
+interface AuthContextType {
+  user: UserData | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  sendOtp: (
+    phone: string
+  ) => Promise<{
+    success: boolean;
+    message: string;
+    phone?: string;
+    isExistingUser?: boolean;
+  }>;
+  verifyOtp: (
+    phone: string,
+    otp: string,
+    name?: string
+  ) => Promise<{
+    success: boolean;
+    message: string;
+    user?: UserData;
+    needsName?: boolean;
+    phone?: string;
+  }>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetchCurrentUser();
+      if (res.success && res.data?.user) {
+        setUser(res.data.user);
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh().finally(() => setIsLoading(false));
+  }, [refresh]);
+
+  const sendOtp = useCallback(async (phone: string) => {
+    const res = await apiSendOtp(phone);
+    if (res.success && res.data) {
+      return {
+        success: true,
+        message: res.message,
+        phone: res.data.phone,
+        isExistingUser: res.data.isExistingUser,
+      };
+    }
+    return { success: false, message: res.message || "Failed to send OTP" };
+  }, []);
+
+  const verifyOtp = useCallback(
+    async (phone: string, otp: string, name?: string) => {
+      const res = await apiVerifyOtp(phone, otp, name);
+      if (!res.success) {
+        return {
+          success: false,
+          message: res.message || "OTP verification failed",
+        };
+      }
+
+      if (res.data && "needsName" in res.data && res.data.needsName) {
+        return {
+          success: true,
+          message: res.message,
+          needsName: true,
+          phone: res.data.phone,
+        };
+      }
+
+      if (res.data && "user" in res.data && res.data.user) {
+        setUser(res.data.user);
+        return {
+          success: true,
+          message: res.message,
+          user: res.data.user,
+        };
+      }
+
+      return {
+        success: false,
+        message: res.message || "OTP verification failed",
+      };
+    },
+    []
+  );
+
+  const logout = useCallback(async () => {
+    await apiLogout();
+    setUser(null);
+  }, []);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        sendOtp,
+        verifyOtp,
+        logout,
+        refresh,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
